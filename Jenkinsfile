@@ -1,25 +1,34 @@
 pipeline {
-    agent any
+    agent any 
+    environment {
+    DOCKERHUB_CREDENTIALS = credentials('docker-hub-yogapandian')
+    }
+    stages { 
+        stage('SCM Checkout') {
+            steps{
+            git 'https://github.com/yogapandian/DevOps_Flask_w_Jenkins_python.git'
+            }
+        }
 
-    stages {
-        stage('Build') {
-            steps {
-                echo 'Building...'
-		sh """pip install -r requirements.txt
-		      python setup.py build"""
+        stage('Build docker image') {
+            steps {  
+                sh 'docker build -t thangamyp/nodeapp:$BUILD_NUMBER .'
             }
         }
-        stage('Test') {
-            steps {
-                echo 'Testing...'
-		sh """export PYTHONPATH=$WORKSPACE/src
-		      pytest tests"""
+        stage('login to dockerhub') {
+            steps{
+                sh 'echo $DOCKERHUB_CREDENTIALS_PSW | docker login -u $DOCKERHUB_CREDENTIALS_USR --password-stdin'
             }
         }
-        stage('Deploy') {
-            steps {
-                echo 'Deploying...'
+        stage('push image') {
+            steps{
+                sh 'docker push thangamyp/nodeapp:$BUILD_NUMBER'
             }
+        }
+}
+post {
+        always {
+            sh 'docker logout'
         }
     }
 }
